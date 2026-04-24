@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タスク管理ツール</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">Tasuku</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-page="tasks">
+        <span class="nav-icon">⬡</span>
+        <span class="nav-label">タスク管理</span>
+      </button>
+      <button class="nav-item" data-page="calendar">
+        <span class="nav-icon">◫</span>
+        <span class="nav-label">カレンダー</span>
+      </button>
+      <button class="nav-item" data-page="report">
+        <span class="nav-icon">◧</span>
+        <span class="nav-label">日報</span>
+      </button>
+    </nav>
+    <div class="sidebar-resizer" id="sidebarResizer"></div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+    <!-- Tasks Page -->
+    <div class="page active" id="page-tasks">
+      <div class="page-header">
+        <div class="page-title-row">
+          <h1 class="page-title">タスク管理</h1>
+          <div class="header-actions">
+            <div class="sort-controls">
+              <label class="sort-label">並び替え</label>
+              <select class="sort-select" id="sortSelect">
+                <option value="status">ステータス順</option>
+                <option value="project">案件名順</option>
+                <option value="deadline">締切順</option>
+              </select>
+            </div>
+            <button class="btn-add" id="addTaskBtn">
+              <span>＋</span> タスク追加
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="tasks-container" id="tasksContainer">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p>読み込み中…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar Page -->
+    <div class="page" id="page-calendar">
+      <div class="page-header">
+        <h1 class="page-title">カレンダー</h1>
+      </div>
+      <div class="calendar-layout">
+        <div class="calendar-main">
+          <div class="calendar-nav">
+            <button class="cal-nav-btn" id="prevMonth">‹</button>
+            <h2 class="cal-month-title" id="calMonthTitle"></h2>
+            <button class="cal-nav-btn" id="nextMonth">›</button>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+        <div class="calendar-detail" id="calendarDetail">
+          <h3 class="detail-title">日付を選択してください</h3>
+          <div class="detail-list" id="detailList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Page -->
+    <div class="page" id="page-report">
+      <div class="page-header">
+        <h1 class="page-title">日報</h1>
+      </div>
+      <div class="report-layout">
+        <div class="report-form">
+          <div class="prev-report-box" id="prevReportBox">
+            <div class="prev-report-label">前日の日報 <span class="date-highlight" id="prevReportDate"></span></div>
+            <div class="prev-report-content" id="prevReportContent"><span class="prev-report-empty">前日の日報はまだありません</span></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">対象日</label>
+            <input type="date" class="form-input" id="reportDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">今日やったこと</label>
+            <textarea class="form-textarea" id="reportDone" rows="5" placeholder="・〇〇&#10;・〇〇"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">明日やること</label>
+            <textarea class="form-textarea" id="reportTomorrow" rows="4" placeholder="・〇〇&#10;・〇〇"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">特記事項</label>
+            <textarea class="form-textarea" id="reportMemo" rows="3" placeholder="連絡事項など"></textarea>
+          </div>
+          <button class="btn-generate" id="generateReportBtn">日報を生成</button>
+        </div>
+        <div class="report-output">
+          <div class="output-header">
+            <h3>プレビュー</h3>
+            <button class="btn-copy" id="copyReportBtn" style="display:none">コピー</button>
+          </div>
+          <pre class="report-preview" id="reportPreview">日報を生成するとここに表示されます</pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Task Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="taskModal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">タスク追加</h2>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">案件名 <span class="required">*</span></label>
+          <select class="form-input" id="taskProject">
+            <option value="">選択してください</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">タスク名 <span class="required">*</span></label>
+          <input type="text" class="form-input" id="taskName" placeholder="タスク名を入力">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ステータス</label>
+          <select class="form-input" id="taskStatus">
+            <option value="要対応">要対応</option>
+            <option value="見積もり作成">見積もり作成</option>
+            <option value="着手">着手</option>
+            <option value="対応中">対応中</option>
+            <option value="確認中">確認中</option>
+            <option value="修正対応中">修正対応中</option>
+            <option value="納品">納品</option>
+            <option value="請求書">請求書</option>
+            <option value="完了">完了</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">締切日</label>
+          <input type="date" class="form-input" id="taskDeadline">
+        </div>
+        <div class="form-group">
+          <label class="form-label">サブタスク</label>
+          <div id="subtaskList"></div>
+          <button class="btn-add-subtask" id="addSubtaskBtn">＋ サブタスク追加</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="modalCancel">キャンセル</button>
+        <button class="btn-save" id="modalSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Firebase -->
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/holidays.js"></script>
+  <script type="module" src="js/tasks.js"></script>
+  <script type="module" src="js/calendar.js"></script>
+  <script type="module" src="js/report.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
