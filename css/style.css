@@ -664,3 +664,21 @@ input[type="date"]::-webkit-date-and-time-value {
   left: 0;
   cursor: pointer;
 }
+
+/* ============ HEADER LAYOUT FIX ============ */
+.page-title-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  position: static !important;
+}
+
+.page-title-row .header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-left: auto !important;
+  position: static !important;
+  left: auto !important;
+  transform: none !important;
+}
