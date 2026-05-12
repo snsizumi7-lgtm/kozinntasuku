@@ -62,6 +62,7 @@ async function init() {
   window.addEventListener("tasksUpdated", () => {
     const active = document.querySelector(".page.active");
     if (active?.id === "page-home") renderHome();
+    if (active?.id === "page-projects") renderProjects();
   });
 }
 

@@ -28,7 +28,7 @@
         <span>ホーム</span>
       </button>
       <button class="nav-item" data-page="projects">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="9" y="12" width="6" height="6" rx="1"/><rect x="16" y="12" width="6" height="6" rx="1"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         <span>案件</span>
       </button>
       <button class="nav-item" data-page="report">
@@ -49,35 +49,40 @@
     <div class="page active" id="page-home">
       <div class="home-greeting" id="homeGreeting"></div>
       <div class="summary-cards" id="summaryCards"></div>
-      <div class="home-section">
-        <div class="home-section-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          今日やること
-          <span class="home-section-sub" id="todayFromReport">（前回日報より）</span>
-        </div>
-        <div class="today-tasks" id="todayTasks"><div class="loading-spinner"><div class="spinner"></div></div></div>
-      </div>
-      <div class="home-section">
-        <div class="home-section-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          要対応・期限切れ
-        </div>
-        <div id="urgentTasks"></div>
-      </div>
-      <div class="home-section">
-        <div class="home-section-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          チャットでタスク操作
-        </div>
-        <div class="chat-container">
-          <div class="chat-messages" id="chatMessages">
-            <div class="chat-bubble ai">タスクの追加・更新をテキストで送ってください。<br>例：「○○案件のLP修正を追加して」「△△を完了にして」「要対応一覧見せて」</div>
+      <!-- 2カラム：左=今日やること+要対応 / 右=チャット -->
+      <div class="home-two-col">
+        <div>
+          <div class="home-section">
+            <div class="home-section-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              今日やること
+              <span class="home-section-sub" id="todayFromReport">（前回日報より）</span>
+            </div>
+            <div class="today-tasks" id="todayTasks"><div class="loading-spinner"><div class="spinner"></div></div></div>
           </div>
-          <div class="chat-input-row">
-            <input type="text" class="chat-input" id="chatInput" placeholder="タスクを入力…">
-            <button class="chat-send" id="chatSend">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
+          <div class="home-section">
+            <div class="home-section-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              要対応・期限切れ
+            </div>
+            <div id="urgentTasks"></div>
+          </div>
+        </div>
+        <div class="home-section">
+          <div class="home-section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            チャットでタスク操作
+          </div>
+          <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-bubble ai">タスクの追加・更新をテキストで送ってください。<br>例：「GY　LP修正」「LP修正を完了にして」「要対応一覧」</div>
+            </div>
+            <div class="chat-input-row">
+              <input type="text" class="chat-input" id="chatInput" placeholder="タスクを入力…">
+              <button class="chat-send" id="chatSend">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -151,6 +156,7 @@
             <label class="form-label">明日やること</label>
             <textarea class="form-textarea" id="reportTomorrow" rows="4" placeholder="・〇〇&#10;・〇〇"></textarea>
           </div>
+          <div class="draft-indicator" id="draftIndicator" style="display:none"><span class="draft-dot"></span>下書き保存済み</div>
           <button class="btn-generate" id="generateReportBtn">日報を生成</button>
         </div>
         <div class="report-output">
@@ -188,7 +194,7 @@
       ホーム
     </button>
     <button class="bottom-nav-item" data-page="projects">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="9" y="12" width="6" height="6" rx="1"/><rect x="16" y="12" width="6" height="6" rx="1"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       案件
     </button>
     <button class="bottom-nav-item" data-page="report">
