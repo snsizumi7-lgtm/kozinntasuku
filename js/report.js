@@ -109,7 +109,7 @@ async function syncTomorrowToTasks(tomorrowText) {
     if (existingNames.has(name)) { skipped++; continue; }
     try {
       await addDoc(collection(db, "tasks_v2"), {
-        project: "日報", name, status: "要対応", deadline: "", subtasks: [], createdAt: Date.now()
+        project: "", name, status: "要対応", deadline: "", subtasks: [], createdAt: Date.now()
       });
       existingNames.add(name);
       added++;

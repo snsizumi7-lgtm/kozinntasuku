@@ -4,7 +4,7 @@ import { db, collection, doc, addDoc, updateDoc, getDocs } from "./firebase.js";
 const STATUSES = ["要対応","対応中","確認中","毎月対応","完了"];
 const CHAT_KEY = "tasuku_chat_v2";
 let localTasks = [];
-let historyLoaded = false; // 重複ロード防止
+let historyLoaded = false;
 
 export async function initChat() {
   const input = document.getElementById("chatInput");
@@ -16,12 +16,8 @@ export async function initChat() {
     localTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch(e) { console.warn(e); }
 
-  if (!historyLoaded) {
-    loadHistory();
-    historyLoaded = true;
-  }
+  if (!historyLoaded) { loadHistory(); historyLoaded = true; }
 
-  // イベントの重複登録を防ぐ
   const newSend = sendBtn.cloneNode(true);
   sendBtn.parentNode.replaceChild(newSend, sendBtn);
   const newInput = input.cloneNode(true);
@@ -39,14 +35,10 @@ function loadHistory() {
   try {
     const history = JSON.parse(localStorage.getItem(CHAT_KEY) || "[]");
     if (!history.length) return;
-    // 初期メッセージをクリアして履歴を表示
     messages.innerHTML = "";
     let lastDate = null;
     history.slice(-30).forEach(msg => {
-      if (msg.date && msg.date !== lastDate) {
-        addDivider(msg.date);
-        lastDate = msg.date;
-      }
+      if (msg.date && msg.date !== lastDate) { addDivider(msg.date); lastDate = msg.date; }
       addBubble(msg.text, msg.type, false);
     });
     messages.scrollTop = messages.scrollHeight;
@@ -95,96 +87,85 @@ async function sendChat() {
   const today = new Date().toISOString().slice(0,10);
   const messages = document.getElementById("chatMessages");
   const dividers = messages.querySelectorAll(".chat-date-divider");
-  const lastDivider = dividers[dividers.length - 1];
-  if (!lastDivider || !lastDivider.textContent.includes("今日")) addDivider(today);
+  const last = dividers[dividers.length - 1];
+  if (!last || !last.textContent.includes("今日")) addDivider(today);
 
   addBubble(text, "user");
-  const thinking = addBubble("考え中…", "ai thinking", false);
-
+  const thinking = addBubble("…", "ai thinking", false);
   const result = await processCommand(text);
   thinking.remove();
   addBubble(result, "ai");
 }
 
 async function processCommand(text) {
-  const t = text.replace(/\s+/g, " ").trim();
+  const t = text.trim();
 
-  if (/一覧|リスト|見せて|教えて|何がある|確認/.test(t)) {
+  // 一覧表示
+  if (/一覧|リスト|見せて|教えて|確認/.test(t)) {
     for (const s of STATUSES) {
       if (t.includes(s)) return listTasks(s);
     }
     return listTasks("all");
   }
 
-  if (/完了|終わった|終わり|おわった|done/.test(t)) {
-    const task = findTask(t);
+  // 完了
+  if (/完了|終わった|おわった|done/.test(t)) {
+    const name = t.replace(/完了|終わった|おわった|done|にして|した/, "").trim();
+    const task = findTask(name || t);
     if (task) return await updateStatus(task, "完了");
-    return suggestTasks("完了にしたいタスクが見つかりませんでした。タスク名をもう少し具体的に入力してください。");
+    return suggestTasks("該当するタスクが見つかりませんでした。");
   }
 
+  // ステータス変更
   for (const s of STATUSES) {
-    if (t.includes(s) && /にして|変更|更新/.test(t)) {
-      const task = findTask(t.replace(s, "").replace(/にして|変更|更新/, ""));
+    if (t.includes(s) && /にして|変更|に/.test(t)) {
+      const name = t.replace(s, "").replace(/にして|変更|に/, "").trim();
+      const task = findTask(name);
       if (task) return await updateStatus(task, s);
     }
   }
 
-  if (/削除|消して|remove/.test(t)) {
-    return "削除は案件ページのタスクから直接行ってください。";
+  // 削除
+  if (/削除|消して/.test(t)) {
+    return "削除はタスクページから直接行ってください。";
   }
 
-  const addPatterns = [
-    /(.+?)(?:の|に)(.+?)(?:を|タスク)?(?:追加|add)/,
-    /追加[：:]\s*(.+)/,
-    /(.+?)を追加/,
-  ];
-  for (const pat of addPatterns) {
-    const m = t.match(pat);
-    if (m) {
-      if (m[2]) return await addTask(m[1].trim(), m[2].trim());
-      return await addTask("", m[1].trim());
-    }
+  // 追加キーワードがある場合
+  if (/追加|登録|add/.test(t)) {
+    const name = t.replace(/追加|登録|add|して|を/, "").trim();
+    return await addTask(name || t);
   }
 
-  const projectTaskMatch = t.match(/^(.+?)[　\s](.+)$/);
-  if (projectTaskMatch && !/(で|が|は|を|に|と|も|から|まで)/.test(projectTaskMatch[0])) {
-    const [, project, name] = projectTaskMatch;
-    if (name.length > 1) return await addTask(project, name);
-  }
-
-  if (t.length > 1 && !/(？|\?)/.test(t)) {
-    return await addTask("", t);
-  }
-
-  return `「${t}」の意図が分かりませんでした。<br><br>使い方：<br>・「<strong>GY　LP修正</strong>」→ タスク追加<br>・「<strong>LP修正を完了にして</strong>」→ 完了に変更<br>・「<strong>要対応一覧</strong>」→ 一覧表示`;
+  // それ以外はそのままタスク追加
+  return await addTask(t);
 }
 
 function findTask(text) {
-  const clean = text.replace(/を|を完了|にして|変更|してください|お願い/g, "").trim();
-  if (!clean) return null;
-  return localTasks.find(t => t.name?.includes(clean) || clean.includes(t.name?.slice(0,4))) || null;
+  if (!text) return null;
+  return localTasks.find(t =>
+    t.name?.includes(text) || text.includes(t.name?.slice(0, 4))
+  ) || null;
 }
 
 function listTasks(filter) {
   const filtered = filter === "all" ? localTasks : localTasks.filter(t => t.status === filter);
   if (!filtered.length) return `${filter === "all" ? "タスク" : filter}はまだありません。`;
   const COLORS = {"要対応":"#dc2626","対応中":"#2563eb","確認中":"#7c3aed","毎月対応":"#16a34a","完了":"#6b7280"};
-  const items = filtered.slice(0, 10).map(t => {
-    const c = COLORS[t.status] || "#6b7280";
-    return `• <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#f0f2f5;color:${c};margin-right:4px">${t.status}</span>${t.project ? `<span style="color:#9ca3af">${esc(t.project)} / </span>` : ""}${esc(t.name)}`;
-  }).join("<br>");
+  const items = filtered.slice(0, 10).map(t =>
+    `• <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#f0f2f5;color:${COLORS[t.status]||"#6b7280"};margin-right:4px">${t.status}</span>${esc(t.name)}`
+  ).join("<br>");
   const more = filtered.length > 10 ? `<br><span style="color:#9ca3af">他${filtered.length-10}件…</span>` : "";
   return `📋 ${filter === "all" ? "全タスク" : filter}（${filtered.length}件）<br>${items}${more}`;
 }
 
-async function addTask(project, name) {
-  if (!name) return "タスク名を入力してください。";
-  const data = { project: project || "", name, status: "要対応", deadline: "", subtasks: [], createdAt: Date.now() };
+async function addTask(name) {
+  if (!name || name.length < 1) return "タスク名を入力してください。";
+  const data = { project: "", name, status: "要対応", deadline: "", subtasks: [], createdAt: Date.now() };
   try {
     const ref = await addDoc(collection(db, "tasks_v2"), data);
     localTasks.push({ id: ref.id, ...data });
     window.dispatchEvent(new Event("tasksUpdated"));
-    return `✅ <strong>${esc(name)}</strong> を追加しました${project ? `<br>案件: ${esc(project)}` : ""}`;
+    return `✅ <strong>${esc(name)}</strong> を追加しました`;
   } catch(e) { return "追加に失敗しました。"; }
 }
 
@@ -198,8 +179,8 @@ async function updateStatus(task, status) {
 }
 
 function suggestTasks(msg) {
-  const recent = localTasks.slice(-5).map(t => `・${esc(t.name)}`).join("<br>");
-  return `${msg}<br><br>最近のタスク：<br>${recent || "なし"}`;
+  const recent = localTasks.filter(t => t.status !== "完了").slice(-5).map(t => `・${esc(t.name)}`).join("<br>");
+  return `${msg}<br><br>未完了タスク：<br>${recent || "なし"}`;
 }
 
 function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }

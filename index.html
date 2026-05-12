@@ -29,7 +29,7 @@
       </button>
       <button class="nav-item" data-page="projects">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        <span>案件</span>
+        <span>タスク</span>
       </button>
       <button class="nav-item" data-page="report">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -108,34 +108,30 @@
       </div>
     </div>
 
-    <!-- PROJECTS -->
+    <!-- TASKS PAGE -->
     <div class="page" id="page-projects">
       <div class="page-header">
-        <h1 class="page-title">案件</h1>
+        <h1 class="page-title">タスク</h1>
       </div>
-      <div id="projectsList" class="projects-grid"></div>
-      <div id="projectDetail" class="project-detail" style="display:none">
-        <button class="project-back-btn" id="projectBackBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          案件一覧に戻る
+      <!-- 統計 -->
+      <div class="task-stats-row" id="taskPageStats"></div>
+      <!-- フィルター -->
+      <div class="task-filter-row" id="taskFilterBtns">
+        <button class="task-filter-btn active" data-filter="all">すべて</button>
+        <button class="task-filter-btn" data-filter="要対応">要対応</button>
+        <button class="task-filter-btn" data-filter="対応中">対応中</button>
+        <button class="task-filter-btn" data-filter="確認中">確認中</button>
+        <button class="task-filter-btn" data-filter="毎月対応">毎月対応</button>
+        <button class="task-filter-btn" data-filter="完了">完了</button>
+      </div>
+      <!-- タスク一覧 -->
+      <div id="taskListBody"></div>
+      <!-- クイック追加 -->
+      <div class="quick-add-row">
+        <input type="text" class="chat-input" id="quickAddInput" placeholder="タスクを追加…">
+        <button class="chat-send" id="quickAddSend">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
-        <h2 class="project-detail-name" id="projectDetailName"></h2>
-        <div class="project-detail-stats" id="projectDetailStats"></div>
-        <div class="project-detail-tasks" id="projectDetailTasks"></div>
-        <div class="project-detail-chat">
-          <div class="home-section-title" style="margin-bottom:10px">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            この案件にタスクを追加
-          </div>
-          <div class="chat-container">
-            <div class="chat-input-row">
-              <input type="text" class="chat-input" id="projectChatInput" placeholder="タスクを入力（例：LP修正を追加して）">
-              <button class="chat-send" id="projectChatSend">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -218,10 +214,6 @@
         </button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">案件名</label>
-          <input type="text" class="form-input" id="editTaskProject" placeholder="案件名">
-        </div>
         <div class="form-group">
           <label class="form-label">タスク名 <span class="required">*</span></label>
           <input type="text" class="form-input" id="editTaskName" placeholder="タスク名">
