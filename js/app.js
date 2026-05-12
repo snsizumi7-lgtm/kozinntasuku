@@ -2,13 +2,15 @@
 import { initReport } from "./report.js";
 import { renderHome } from "./home.js";
 import { initChat } from "./chat.js";
+import { initProjects, renderProjects } from "./projects.js";
+import { initWeekly } from "./weekly.js";
 
-// ===== NAVIGATION =====
 function switchPage(page) {
   document.querySelectorAll(".nav-item, .bottom-nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === page));
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById(`page-${page}`)?.classList.add("active");
   if (page === "home") renderHome();
+  if (page === "projects") renderProjects();
 }
 
 function initNav() {
@@ -24,7 +26,6 @@ function initNav() {
   }
 }
 
-// ===== SIDEBAR RESIZE =====
 function initSidebarResize() {
   const resizer = document.getElementById("sidebarResizer");
   const sidebar = document.getElementById("sidebar");
@@ -49,11 +50,12 @@ function initSidebarResize() {
   });
 }
 
-// ===== INIT =====
 async function init() {
   initNav();
   initSidebarResize();
   initReport();
+  initProjects();
+  initWeekly();
   await initChat();
   renderHome();
 

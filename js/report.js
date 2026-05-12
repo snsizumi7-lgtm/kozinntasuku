@@ -2,8 +2,11 @@
 import { db, doc, setDoc, getDocs, collection } from "./firebase.js";
 
 export function initReport() {
+  // 今日の日付を自動セット
   const today = new Date().toISOString().slice(0, 10);
-  document.getElementById("reportDate").value = today;
+  const dateInput = document.getElementById("reportDate");
+  if (dateInput) dateInput.value = today;
+
   document.getElementById("generateReportBtn")?.addEventListener("click", generateReport);
   document.getElementById("copyReportBtn")?.addEventListener("click", copyReport);
 }
