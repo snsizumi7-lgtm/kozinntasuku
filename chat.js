@@ -20,14 +20,24 @@ export async function initChat() {
   // 履歴を一度だけ読み込む
   if (!historyLoaded) { loadHistory(); historyLoaded = true; }
 
-  // イベント重複防止
-  const newSend = sendBtn.cloneNode(true);
-  sendBtn.parentNode.replaceChild(newSend, sendBtn);
-  const newInput = input.cloneNode(true);
-  input.parentNode.replaceChild(newInput, input);
-
   // 送信ボタンのみ（Enterキーは送信しない）
-  newSend.addEventListener("click", () => sendChat());
+  sendBtn.addEventListener("click", () => sendChat());
+
+  // Enterキー無効化（確実に）
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  });
+  input.addEventListener("keypress", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  });
 }
 
 // タスク更新時にローカルキャッシュも更新
