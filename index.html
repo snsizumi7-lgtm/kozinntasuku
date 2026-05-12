@@ -43,7 +43,7 @@
       <!-- Summary cards -->
       <div class="summary-cards" id="summaryCards"></div>
 
-      <!-- Today's tasks from yesterday's report -->
+      <!-- Today tasks from yesterday's report -->
       <div class="home-section">
         <div class="home-section-title">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -111,10 +111,6 @@
       <div class="page-header"><h1 class="page-title">日報</h1></div>
       <div class="report-layout">
         <div class="report-form">
-          <div class="prev-report-box" id="prevReportBox">
-            <div class="prev-report-label">直近の日報 <span class="date-highlight" id="prevReportDate"></span></div>
-            <div id="prevReportContent"><span class="prev-report-empty">過去の日報はまだありません</span></div>
-          </div>
           <div class="form-group">
             <label class="form-label">対象日</label>
             <input type="date" class="form-input" id="reportDate" style="text-align:left;-webkit-appearance:none;">
@@ -126,10 +122,6 @@
           <div class="form-group">
             <label class="form-label">明日やること</label>
             <textarea class="form-textarea" id="reportTomorrow" rows="4" placeholder="・〇〇&#10;・〇〇"></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">特記事項</label>
-            <textarea class="form-textarea" id="reportMemo" rows="3" placeholder="連絡事項など"></textarea>
           </div>
           <button class="btn-generate" id="generateReportBtn">日報を生成</button>
         </div>
