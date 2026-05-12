@@ -336,3 +336,24 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   .weekly-week-selector { gap: 6px; }
   .week-btn { font-size: 11px; padding: 5px 10px; }
 }
+
+/* ===== EDIT SUBTASK ROW ===== */
+.edit-subtask-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 7px;
+}
+.edit-subtask-input {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  outline: none;
+  width: 100%;
+}
+.edit-subtask-input:focus { border-color: var(--accent-light); }
