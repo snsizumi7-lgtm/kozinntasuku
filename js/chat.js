@@ -1,12 +1,18 @@
 // js/chat.js
 import { db, collection, doc, addDoc, updateDoc, getDocs } from "./firebase.js";
-import { tasks, STATUSES, showToast } from "./tasks.js";
-import { renderHome } from "./home.js";
 
-export function initChat() {
+let localTasks = [];
+
+export async function initChat() {
   const input = document.getElementById("chatInput");
   const sendBtn = document.getElementById("chatSend");
   if (!input || !sendBtn) return;
+
+  // Load tasks for context
+  try {
+    const snap = await getDocs(collection(db, "tasks_v2"));
+    localTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { console.warn("tasks load error:", e); }
 
   sendBtn.addEventListener("click", () => sendChat());
   input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); } });
@@ -36,16 +42,17 @@ async function sendChat() {
     const result = await processTaskCommand(text);
     thinking.remove();
     addMessage(result, "ai");
-  } catch (e) {
+  } catch(e) {
     thinking.remove();
     addMessage("エラーが発生しました。もう一度お試しください。", "ai");
     console.error(e);
   }
 }
 
+const STATUSES = ["要対応","対応中","確認中","毎月対応","完了"];
+
 async function processTaskCommand(text) {
-  // タスク一覧をコンテキストとして渡す
-  const taskList = tasks.map(t => `ID:${t.id} 案件:${t.project||"未設定"} タスク:${t.name} ステータス:${t.status}`).join("\n");
+  const taskList = localTasks.map(t => `ID:${t.id} 案件:${t.project||"未設定"} タスク:${t.name} ステータス:${t.status}`).join("\n");
 
   const prompt = `あなたはタスク管理アシスタントです。ユーザーの指示を解析して、以下のJSON形式でのみ返答してください。
 
@@ -99,21 +106,19 @@ async function executeAction(cmd) {
       createdAt: Date.now()
     };
     const ref = await addDoc(collection(db, "tasks_v2"), data);
-    tasks.push({ id: ref.id, ...data });
+    localTasks.push({ id: ref.id, ...data });
     window.dispatchEvent(new Event("tasksUpdated"));
-    showToast("タスクを追加しました");
     return `✅ <strong>${data.name}</strong> を追加しました<br>案件: ${data.project||"未設定"} | ステータス: ${data.status}`;
   }
 
   if (cmd.action === "update" || cmd.action === "complete") {
     const status = cmd.action === "complete" ? "完了" : cmd.status;
-    const task = tasks.find(t => t.id === cmd.id);
+    const task = localTasks.find(t => t.id === cmd.id);
     if (!task) return "該当するタスクが見つかりませんでした。";
     await updateDoc(doc(db, "tasks_v2", cmd.id), { status });
     task.status = status;
     window.dispatchEvent(new Event("tasksUpdated"));
-    showToast("更新しました");
-    return `✅ <strong>${task.name}</strong> を<strong>${status}</strong>にしました<br>${cmd.message||""}`;
+    return `✅ <strong>${task.name}</strong> を<strong>${status}</strong>にしました`;
   }
 
   return cmd.message || "指示を理解できませんでした。「○○を追加して」「△△を完了にして」のように入力してください。";
