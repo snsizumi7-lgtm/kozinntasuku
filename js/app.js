@@ -56,12 +56,7 @@ function initEditModal() {
   document.getElementById("taskEditOverlay")?.addEventListener("click", e => {
     if(e.target === e.currentTarget) e.currentTarget.classList.remove("open");
   });
-  document.querySelectorAll(".edit-status-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".edit-status-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-    });
-  });
+
 }
 
 async function init() {

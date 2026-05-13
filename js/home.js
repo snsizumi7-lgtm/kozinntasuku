@@ -2,13 +2,7 @@
 import { db, getDocs, addDoc, updateDoc, deleteDoc, collection, doc } from "./firebase.js";
 import { todayStr } from "./holidays.js";
 
-const STATUSES = ["要対応","対応中","確認中","毎月対応","完了"];
-const STATUS_COLORS = {"要対応":"#dc2626","対応中":"#2563eb","確認中":"#7c3aed","毎月対応":"#16a34a","完了":"#6b7280"};
-const STATUS_BG = {"要対応":"#fef2f2","対応中":"#eff6ff","確認中":"#f5f3ff","毎月対応":"#f0fdf4","完了":"#f9fafb"};
-const STATUS_BORDER = {"要対応":"#fca5a5","対応中":"#93c5fd","確認中":"#c4b5fd","毎月対応":"#86efac","完了":"#d1d5db"};
-
 let allTasks = [];
-let currentFilter = "all";
 
 export async function renderHome() {
   renderGreeting();
@@ -36,28 +30,26 @@ async function loadAndRender() {
   renderWeeklyDone();
   renderWeeklyChart();
   initHomeQuickAdd();
-  initFilterBtns();
 }
 
 function renderSummaryCards() {
   const el = document.getElementById("summaryCards");
   if (!el) return;
-  const today = todayStr();
-  const urgent = allTasks.filter(t => t.status === "要対応").length;
-  const working = allTasks.filter(t => ["対応中","確認中"].includes(t.status)).length;
-  const overdue = allTasks.filter(t => t.deadline && t.deadline < today && t.status !== "完了").length;
+  const total = allTasks.filter(t => t.status !== "完了").length;
+  const done = allTasks.filter(t => t.status === "完了").length;
+  const pct = allTasks.length > 0 ? Math.round(done / allTasks.length * 100) : 0;
   el.innerHTML = `
-    <div class="summary-card urgent ${urgent > 0 ? "has-items" : ""}">
-      <div class="summary-card-num">${urgent}</div>
-      <div class="summary-card-label">要対応</div>
-    </div>
     <div class="summary-card working">
-      <div class="summary-card-num">${working}</div>
-      <div class="summary-card-label">対応中 / 確認中</div>
+      <div class="summary-card-num">${total}</div>
+      <div class="summary-card-label">未完了タスク</div>
     </div>
-    <div class="summary-card done ${overdue > 0 ? "has-items" : ""}">
-      <div class="summary-card-num">${overdue}</div>
-      <div class="summary-card-label">期限切れ</div>
+    <div class="summary-card done">
+      <div class="summary-card-num">${done}</div>
+      <div class="summary-card-label">完了済み</div>
+    </div>
+    <div class="summary-card urgent">
+      <div class="summary-card-num">${pct}%</div>
+      <div class="summary-card-label">完了率</div>
     </div>
   `;
 }
@@ -67,14 +59,12 @@ export async function renderTodaySection() {
   const el = document.getElementById("todayTasks");
   const subEl = document.getElementById("todayFromReport");
   if (!el) return;
-
   try {
     const snap = await getDocs(collection(db, "daily_reports"));
     const reports = [];
     snap.forEach(d => { const data = d.data(); if (data.date) reports.push(data); });
     reports.sort((a,b) => b.date.localeCompare(a.date));
     const latest = reports[0];
-
     if (!latest || !latest.tomorrow) {
       el.innerHTML = `<div class="empty-guide">
         <div class="empty-guide-icon">📝</div>
@@ -83,7 +73,6 @@ export async function renderTodaySection() {
       </div>`;
       return;
     }
-
     const d = new Date(latest.date + "T00:00:00");
     const weekDays = ["日","月","火","水","木","金","土"];
     if (subEl) subEl.textContent = `（${d.getMonth()+1}/${d.getDate()}（${weekDays[d.getDay()]}）の日報より）`;
@@ -108,31 +97,36 @@ export async function renderTodaySection() {
   }
 }
 
-// チェック状態を保存 → 日報「今日やったこと」に自動反映
-window.saveTodayCheck = function(index, checked, taskText) {
+// チェック → タスク完了 + 日報反映
+window.saveTodayCheck = async function(index, checked, taskText) {
   const today = new Date().toISOString().slice(0,10);
   const key = `tasuku_checks_${today}`;
   try {
     const checks = JSON.parse(localStorage.getItem(key) || "{}");
-    if (checked) {
-      checks[index] = taskText;
-    } else {
-      delete checks[index];
-    }
+    if (checked) checks[index] = taskText; else delete checks[index];
     localStorage.setItem(key, JSON.stringify(checks));
 
-    // UIのスタイル更新
     const items = document.querySelectorAll(".today-task-item");
     if (items[index]) {
       const span = items[index].querySelector("span");
-      if (span) span.style.cssText = checked
-        ? "flex:1;text-decoration:line-through;color:#9ca3af"
-        : "flex:1";
+      if (span) span.style.cssText = checked ? "flex:1;text-decoration:line-through;color:#9ca3af" : "flex:1";
     }
 
-    // 日報ページの「今日やったこと」に自動反映
+    // タスクのステータスを変更
+    const task = allTasks.find(t => t.name === taskText)
+      || allTasks.find(t => t.name?.includes(taskText) || taskText.includes(t.name||""));
+    if (task) {
+      const newStatus = checked ? "完了" : "未完了";
+      await updateDoc(doc(db, "tasks_v2", task.id), { done: checked, updatedAt: Date.now() });
+      task.done = checked;
+      renderSummaryCards();
+      renderTaskList();
+      renderWeeklyDone();
+      window.dispatchEvent(new Event("tasksUpdated"));
+    }
+
     syncCheckedToDone();
-  } catch(e) {}
+  } catch(e) { console.warn(e); }
 };
 
 function syncCheckedToDone() {
@@ -140,119 +134,119 @@ function syncCheckedToDone() {
   const key = `tasuku_checks_${today}`;
   try {
     const checks = JSON.parse(localStorage.getItem(key) || "{}");
-    const checkedItems = Object.values(checks).filter(v => typeof v === "string");
+    const items = Object.values(checks).filter(v => typeof v === "string");
     const doneEl = document.getElementById("reportDone");
-    if (doneEl && checkedItems.length > 0) {
-      doneEl.value = checkedItems.map(t => `・${t}`).join("\n");
+    if (doneEl && items.length > 0) {
+      doneEl.value = items.map(t => `・${t}`).join("\n");
     }
   } catch(e) {}
 }
 
-// ===== タスク一覧（フィルター付き）=====
-function initFilterBtns() {
-  const container = document.getElementById("homeFilterBtns");
-  if (!container) return;
-  // 既存イベントを除去
-  const newContainer = container.cloneNode(true);
-  container.parentNode.replaceChild(newContainer, container);
-  newContainer.addEventListener("click", e => {
-    const btn = e.target.closest("[data-filter]");
-    if (!btn) return;
-    currentFilter = btn.dataset.filter;
-    newContainer.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    renderTaskList();
-  });
-}
-
+// ===== タスク一覧（チェックボックス式）=====
 function renderTaskList() {
   const el = document.getElementById("homeTaskList");
   if (!el) return;
 
-  const filtered = currentFilter === "all"
-    ? allTasks.filter(t => t.status !== "完了")
-    : currentFilter === "完了"
-    ? allTasks.filter(t => t.status === "完了")
-    : allTasks.filter(t => t.status === currentFilter);
+  const active = allTasks.filter(t => !t.done);
+  const done = allTasks.filter(t => t.done);
 
-  if (!filtered.length) {
+  if (!allTasks.length) {
     el.innerHTML = `<div class="empty-guide">
       <div class="empty-guide-icon">✅</div>
-      <div class="empty-guide-title">${currentFilter === "all" ? "未完了のタスクはありません" : `${currentFilter}のタスクはありません`}</div>
+      <div class="empty-guide-title">タスクがありません</div>
+      <div class="empty-guide-desc">下の入力欄からタスクを追加してください</div>
     </div>`;
     return;
   }
 
-  // ステータス順グループ
-  if (currentFilter === "all") {
-    let html = "";
-    STATUSES.filter(s => s !== "完了").forEach(s => {
-      const group = filtered.filter(t => t.status === s);
-      if (!group.length) return;
-      html += `<div class="task-group" style="margin-bottom:14px">
-        <div class="task-group-header">
-          <span class="task-group-dot" style="background:${STATUS_COLORS[s]}"></span>
-          <span class="task-group-name">${s}</span>
-          <span class="task-group-count">${group.length}</span>
-        </div>
-        ${group.map(t => renderTaskRow(t)).join("")}
-      </div>`;
-    });
-    el.innerHTML = html || '<div class="empty-guide"><div class="empty-guide-title">タスクなし</div></div>';
-  } else {
-    el.innerHTML = filtered.map(t => renderTaskRow(t)).join("");
+  let html = "";
+
+  // 未完了
+  if (active.length) {
+    html += active.map(t => renderTaskRow(t, false)).join("");
   }
+
+  // 完了済み（折りたたみ）
+  if (done.length) {
+    html += `<div class="done-tasks-section">
+      <div class="done-tasks-header" onclick="toggleDoneSection(this)">
+        <span style="color:#9ca3af;font-size:12px">完了済み（${done.length}件）</span>
+        <span class="done-toggle" style="color:#9ca3af;font-size:11px">▾</span>
+      </div>
+      <div class="done-tasks-body">
+        ${done.map(t => renderTaskRow(t, true)).join("")}
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
 }
 
-function renderTaskRow(task) {
-  const subs = task.subtasks || [];
-  const doneSubs = subs.filter(s => s.done).length;
-  const pct = subs.length > 0 ? Math.round(doneSubs / subs.length * 100) : -1;
-  const c = STATUS_COLORS[task.status] || "#6b7280";
-  const bg = STATUS_BG[task.status] || "#f9fafb";
-  const border = STATUS_BORDER[task.status] || "#d1d5db";
-  const nextStatus = STATUSES[(STATUSES.indexOf(task.status) + 1) % STATUSES.length];
-
-  return `<div class="task-row">
-    <span class="task-row-dot" style="background:${c}"></span>
-    <div class="task-row-body" onclick="openTaskEdit('${task.id}')">
-      <div class="task-row-name">${esc(task.name)}</div>
-      ${pct >= 0 ? `<div class="task-row-progress">
-        <div class="task-row-bar"><div style="width:${pct}%;height:100%;background:${c};border-radius:2px"></div></div>
-        <span class="task-row-pct">${doneSubs}/${subs.length}</span>
-      </div>` : ""}
-    </div>
-    <button class="task-row-badge" style="background:${bg};color:${c};border:1px solid ${border};cursor:pointer"
-      onclick="homeCycleStatus('${task.id}')" title="→${nextStatus}">${task.status}</button>
+function renderTaskRow(task, isDone) {
+  const doneStyle = isDone ? "text-decoration:line-through;color:#9ca3af" : "";
+  const opacity = isDone ? "opacity:0.6" : "";
+  return `<div class="task-row" style="${opacity}">
+    <input type="checkbox" class="subtask-check" ${isDone ? "checked" : ""}
+      onchange="toggleTaskDone('${task.id}', this.checked)">
+    <span class="task-row-name" style="flex:1;${doneStyle}" onclick="openTaskEdit('${task.id}')">${esc(task.name)}</span>
+    ${(task.subtasks||[]).length > 0 ? `<span class="task-row-pct" style="font-size:11px;color:#9ca3af">${(task.subtasks||[]).filter(s=>s.done).length}/${(task.subtasks||[]).length}</span>` : ""}
     <span class="task-row-edit" onclick="openTaskEdit('${task.id}')">✎</span>
   </div>`;
 }
 
-// ステータスワンタップ変更
-window.homeCycleStatus = async function(taskId) {
+window.toggleDoneSection = function(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector(".done-toggle");
+  const collapsed = body.style.display === "none";
+  body.style.display = collapsed ? "block" : "none";
+  toggle.textContent = collapsed ? "▾" : "▸";
+};
+
+// タスクのチェック → 完了/未完了 + 日報反映
+window.toggleTaskDone = async function(taskId, checked) {
   const task = allTasks.find(t => t.id === taskId);
   if (!task) return;
-  const next = STATUSES[(STATUSES.indexOf(task.status) + 1) % STATUSES.length];
   try {
-    await updateDoc(doc(db, "tasks_v2", taskId), { status: next, updatedAt: Date.now() });
-    task.status = next;
+    await updateDoc(doc(db, "tasks_v2", taskId), { done: checked, updatedAt: Date.now() });
+    task.done = checked;
     renderSummaryCards();
     renderTaskList();
     renderWeeklyDone();
-    showToast(`→ ${next}`);
+
+    // 日報の「今日やったこと」に反映
+    syncTasksToDone();
     window.dispatchEvent(new Event("tasksUpdated"));
   } catch(e) { showToast("更新に失敗しました"); }
 };
 
-// タスク編集モーダル（ホームから開く）
+// 完了済みタスクを日報「今日やったこと」に自動反映
+function syncTasksToDone() {
+  const doneEl = document.getElementById("reportDone");
+  if (!doneEl) return;
+
+  // 今日やることのチェック分
+  const today = new Date().toISOString().slice(0,10);
+  const checkKey = `tasuku_checks_${today}`;
+  let todayChecked = [];
+  try { todayChecked = Object.values(JSON.parse(localStorage.getItem(checkKey)||"{}")).filter(v=>typeof v==="string"); } catch(e) {}
+
+  // タスク一覧のチェック分（今日更新されたもの）
+  const todayDoneTasks = allTasks
+    .filter(t => t.done && t.updatedAt && new Date(t.updatedAt).toISOString().slice(0,10) === today)
+    .map(t => t.name);
+
+  const all = [...new Set([...todayChecked, ...todayDoneTasks])];
+  if (all.length > 0) {
+    doneEl.value = all.map(t => `・${t}`).join("\n");
+  }
+}
+
+// タスク編集モーダル
 window.openTaskEdit = function(taskId) {
   const task = allTasks.find(t => t.id === taskId);
   if (!task) return;
   window._editingHomeTaskId = taskId;
   document.getElementById("editTaskName").value = task.name || "";
-  document.querySelectorAll(".edit-status-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.status === task.status);
-  });
   renderEditSubtasks(task.subtasks || []);
   document.getElementById("taskEditOverlay").classList.add("open");
 };
@@ -271,42 +265,28 @@ function renderEditSubtasks(subtasks) {
   `).join("");
 }
 
-window.toggleHomeSubtask = (i, v) => {
-  const t = allTasks.find(t => t.id === window._editingHomeTaskId);
-  if (t?.subtasks?.[i]) t.subtasks[i].done = v;
-};
-window.updateHomeSubtask = (i, v) => {
-  const t = allTasks.find(t => t.id === window._editingHomeTaskId);
-  if (t?.subtasks?.[i]) t.subtasks[i].text = v;
-};
-window.removeHomeSubtask = (i) => {
-  const t = allTasks.find(t => t.id === window._editingHomeTaskId);
-  if (!t) return;
-  t.subtasks = (t.subtasks||[]).filter((_,idx) => idx !== i);
-  renderEditSubtasks(t.subtasks);
-};
+window.toggleHomeSubtask = (i,v) => { const t=allTasks.find(t=>t.id===window._editingHomeTaskId); if(t?.subtasks?.[i]) t.subtasks[i].done=v; };
+window.updateHomeSubtask = (i,v) => { const t=allTasks.find(t=>t.id===window._editingHomeTaskId); if(t?.subtasks?.[i]) t.subtasks[i].text=v; };
+window.removeHomeSubtask = (i) => { const t=allTasks.find(t=>t.id===window._editingHomeTaskId); if(!t) return; t.subtasks=(t.subtasks||[]).filter((_,idx)=>idx!==i); renderEditSubtasks(t.subtasks); };
 
 export async function saveHomeTaskEdit() {
   const taskId = window._editingHomeTaskId;
   const task = allTasks.find(t => t.id === taskId);
   if (!task) return;
   const name = document.getElementById("editTaskName").value.trim();
-  const statusBtn = document.querySelector(".edit-status-btn.active");
-  const status = statusBtn?.dataset.status || task.status;
-  document.querySelectorAll(".edit-subtask-row").forEach((row, i) => {
+  if (!name) { showToast("タスク名を入力してください"); return; }
+  document.querySelectorAll(".edit-subtask-row").forEach((row,i) => {
     if (task.subtasks?.[i]) {
       task.subtasks[i].text = row.querySelector(".edit-subtask-input")?.value || task.subtasks[i].text;
       task.subtasks[i].done = row.querySelector(".subtask-check")?.checked ?? task.subtasks[i].done;
     }
   });
   const subtasks = (task.subtasks||[]).filter(s => s.text?.trim());
-  if (!name) { showToast("タスク名を入力してください"); return; }
   try {
-    await updateDoc(doc(db, "tasks_v2", taskId), { name, project:"", status, subtasks, updatedAt: Date.now() });
-    task.name = name; task.status = status; task.subtasks = subtasks;
+    await updateDoc(doc(db,"tasks_v2",taskId), { name, subtasks, updatedAt:Date.now() });
+    task.name=name; task.subtasks=subtasks;
     document.getElementById("taskEditOverlay").classList.remove("open");
-    renderSummaryCards(); renderTaskList(); renderWeeklyDone();
-    showToast("更新しました");
+    renderTaskList(); showToast("更新しました");
     window.dispatchEvent(new Event("tasksUpdated"));
   } catch(e) { showToast("更新に失敗しました"); }
 }
@@ -316,7 +296,7 @@ export async function deleteHomeTask() {
   const task = allTasks.find(t => t.id === taskId);
   if (!confirm(`「${task?.name}」を削除しますか？`)) return;
   try {
-    await deleteDoc(doc(db, "tasks_v2", taskId));
+    await deleteDoc(doc(db,"tasks_v2",taskId));
     allTasks = allTasks.filter(t => t.id !== taskId);
     document.getElementById("taskEditOverlay").classList.remove("open");
     renderSummaryCards(); renderTaskList(); renderWeeklyDone();
@@ -325,17 +305,17 @@ export async function deleteHomeTask() {
   } catch(e) { showToast("削除に失敗しました"); }
 }
 
-// ===== 今週完了 =====
+// 今週完了
 function renderWeeklyDone() {
   const el = document.getElementById("weeklyDoneTasks");
   const countEl = document.getElementById("weeklyDoneCount");
   if (!el) return;
   const now = new Date();
   const mon = new Date(now);
-  mon.setDate(now.getDate() - ((now.getDay()||7)-1));
+  mon.setDate(now.getDate()-((now.getDay()||7)-1));
   mon.setHours(0,0,0,0);
   const done = allTasks.filter(t => {
-    if (t.status !== "完了") return false;
+    if (!t.done) return false;
     const ts = t.updatedAt || t.createdAt;
     return ts && new Date(ts) >= mon;
   });
@@ -352,54 +332,47 @@ function renderWeeklyDone() {
   `).join("");
 }
 
-// ===== 週グラフ =====
+// 週グラフ
 function renderWeeklyChart() {
   const canvas = document.getElementById("weeklyChart");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  const w = canvas.width, h = canvas.height;
+  const w=canvas.width, h=canvas.height;
   ctx.clearRect(0,0,w,h);
-  const labels = ["月","火","水","木","金","土","日"];
-  const now = new Date();
-  const mon = new Date(now);
+  const labels=["月","火","水","木","金","土","日"];
+  const now=new Date(), mon=new Date(now);
   mon.setDate(now.getDate()-((now.getDay()||7)-1));
-  const days = Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d.toISOString().slice(0,10);});
-  const counts = days.map(day=>allTasks.filter(t=>t.createdAt&&new Date(t.createdAt).toISOString().slice(0,10)===day).length);
-  const maxVal = Math.max(...counts,1);
-  const padL=30,padR=10,padT=16,padB=26;
-  const chartW=w-padL-padR,chartH=h-padT-padB;
-  const barW=Math.floor(chartW/7)-8;
+  const days=Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d.toISOString().slice(0,10);});
+  const counts=days.map(day=>allTasks.filter(t=>t.createdAt&&new Date(t.createdAt).toISOString().slice(0,10)===day).length);
+  const maxVal=Math.max(...counts,1);
+  const padL=30,padR=10,padT=16,padB=26,chartW=w-padL-padR,chartH=h-padT-padB,barW=Math.floor(chartW/7)-8;
   ctx.strokeStyle="#e8eaed";ctx.lineWidth=0.5;
   for(let i=0;i<=4;i++){const y=padT+chartH-(chartH*i/4);ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();}
   const today=todayStr();
   days.forEach((day,i)=>{
     const x=padL+i*(chartW/7)+4,barH=counts[i]>0?Math.max((counts[i]/maxVal)*chartH,4):0,y=padT+chartH-barH;
     ctx.fillStyle=day===today?"#3b82f6":"#bfdbfe";
-    ctx.beginPath();
-    if(ctx.roundRect)ctx.roundRect(x,y,barW,barH,[3,3,0,0]);else ctx.rect(x,y,barW,barH);
-    ctx.fill();
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,barW,barH,[3,3,0,0]);else ctx.rect(x,y,barW,barH);ctx.fill();
     ctx.fillStyle="#9ca3af";ctx.font="11px 'Noto Sans JP',sans-serif";ctx.textAlign="center";
     ctx.fillText(labels[i],x+barW/2,h-6);
     if(counts[i]>0){ctx.fillStyle="#6b7280";ctx.fillText(counts[i],x+barW/2,y-4);}
   });
 }
 
-// ===== クイック追加 =====
+// クイック追加
 function initHomeQuickAdd() {
   const input = document.getElementById("homeQuickInput");
   const btn = document.getElementById("homeQuickBtn");
   if (!input || !btn) return;
-  const newBtn = btn.cloneNode(true);
-  btn.parentNode.replaceChild(newBtn, btn);
-  const newInput = input.cloneNode(true);
-  input.parentNode.replaceChild(newInput, input);
+  const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn,btn);
+  const newInput = input.cloneNode(true); input.parentNode.replaceChild(newInput,input);
   const doAdd = async () => {
     const name = newInput.value.trim();
     if (!name) return;
     newInput.value = "";
     try {
-      const ref = await addDoc(collection(db, "tasks_v2"), { project:"", name, status:"要対応", deadline:"", subtasks:[], createdAt:Date.now() });
-      allTasks.unshift({ id:ref.id, project:"", name, status:"要対応", deadline:"", subtasks:[], createdAt:Date.now() });
+      const ref = await addDoc(collection(db,"tasks_v2"), { project:"", name, done:false, subtasks:[], createdAt:Date.now() });
+      allTasks.unshift({ id:ref.id, project:"", name, done:false, subtasks:[], createdAt:Date.now() });
       renderSummaryCards(); renderTaskList();
       showToast(`「${name}」を追加しました`);
       window.dispatchEvent(new Event("tasksUpdated"));
@@ -414,7 +387,7 @@ document.addEventListener("click", e => {
     const task = allTasks.find(t => t.id === window._editingHomeTaskId);
     if (!task) return;
     if (!task.subtasks) task.subtasks = [];
-    task.subtasks.push({ id: crypto.randomUUID(), text:"", done:false });
+    task.subtasks.push({ id:crypto.randomUUID(), text:"", done:false });
     renderEditSubtasks(task.subtasks);
     setTimeout(()=>{const inputs=document.querySelectorAll(".edit-subtask-input");inputs[inputs.length-1]?.focus();},50);
   }
