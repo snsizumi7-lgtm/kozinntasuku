@@ -588,3 +588,67 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   .task-stats-row { grid-template-columns: repeat(2, 1fr); }
   .task-row-edit { opacity: 1; }
 }
+
+/* ===== HOME QUICK ADD ===== */
+.home-quick-add {
+  display: flex;
+  gap: 0;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface);
+}
+.home-quick-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: none;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  background: transparent;
+}
+.home-quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--t);
+  white-space: nowrap;
+}
+.home-quick-btn:hover { background: var(--accent-hover); }
+
+/* 完了タブを右端に分ける */
+.task-filter-done-btn {
+  margin-left: auto !important;
+  border-style: dashed !important;
+  color: var(--text-muted) !important;
+}
+.task-filter-done-btn.active {
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  border-color: #d1d5db !important;
+  border-style: solid !important;
+}
+
+/* ステータスバッジをボタンとして自然に見せる */
+.task-row-badge {
+  transition: opacity var(--t), transform var(--t);
+}
+.task-row-badge:hover {
+  opacity: 0.75;
+  transform: scale(1.04);
+}
+
+/* 今週完了セクション */
+#weeklyDoneTasks .today-task-item {
+  opacity: 0.75;
+}

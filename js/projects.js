@@ -85,7 +85,7 @@ function renderTaskList() {
   if (!el) return;
 
   const filtered = currentFilter === "all"
-    ? allTasks
+    ? allTasks.filter(t => t.status !== "完了")
     : allTasks.filter(t => t.status === currentFilter);
 
   if (!filtered.length) {
@@ -125,18 +125,20 @@ function renderTaskRow(task) {
   const c = STATUS_COLORS[task.status] || "#6b7280";
   const bg = STATUS_BG[task.status] || "#f9fafb";
   const border = STATUS_BORDER[task.status] || "#d1d5db";
+  const nextStatus = STATUSES[(STATUSES.indexOf(task.status) + 1) % STATUSES.length];
 
-  return `<div class="task-row" onclick="openEditModal('${task.id}')">
+  return `<div class="task-row">
     <span class="task-row-dot" style="background:${c}"></span>
-    <div class="task-row-body">
+    <div class="task-row-body" onclick="openEditModal('${task.id}')">
       <div class="task-row-name">${esc(task.name)}</div>
       ${pct >= 0 ? `<div class="task-row-progress">
         <div class="task-row-bar"><div style="width:${pct}%;height:100%;background:${c};border-radius:2px;transition:width 0.3s"></div></div>
         <span class="task-row-pct">${doneSubs}/${subs.length}</span>
       </div>` : ""}
     </div>
-    <span class="task-row-badge" style="background:${bg};color:${c};border-color:${border}">${task.status}</span>
-    <span class="task-row-edit">✎</span>
+    <button class="task-row-badge" style="background:${bg};color:${c};border-color:${border};cursor:pointer;border:1px solid ${border}"
+      onclick="cycleStatus('${task.id}')" title="タップでステータス変更（→${nextStatus}）">${task.status}</button>
+    <span class="task-row-edit" onclick="openEditModal('${task.id}')">✎</span>
   </div>`;
 }
 
@@ -155,6 +157,22 @@ async function quickAddTask() {
     window.dispatchEvent(new Event("tasksUpdated"));
   } catch(e) { showToast("追加に失敗しました"); }
 }
+
+
+// ステータスをワンタップで次に進める
+window.cycleStatus = async function(taskId) {
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task) return;
+  const next = STATUSES[(STATUSES.indexOf(task.status) + 1) % STATUSES.length];
+  try {
+    await updateDoc(doc(db, "tasks_v2", taskId), { status: next, updatedAt: Date.now() });
+    task.status = next;
+    renderStats();
+    renderTaskList();
+    showToast(`→ ${next}`);
+    window.dispatchEvent(new Event("tasksUpdated"));
+  } catch(e) { showToast("更新に失敗しました"); }
+};
 
 // ===== EDIT MODAL =====
 window.openEditModal = function(taskId) {
@@ -231,7 +249,7 @@ async function saveEdit() {
   if (!name) { showToast("タスク名を入力してください"); return; }
 
   try {
-    await updateDoc(doc(db, "tasks_v2", editingTaskId), { name, project: "", status, subtasks });
+    await updateDoc(doc(db, "tasks_v2", editingTaskId), { name, project: "", status, subtasks, updatedAt: Date.now() });
     task.name = name; task.status = status; task.subtasks = subtasks;
     closeEditModal();
     renderStats();
