@@ -382,13 +382,9 @@ export function saveEngagement() {
 }
 
 function renderWeeklyChart() {
-  const canvas = document.getElementById("weeklyChart");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
+  const el = document.getElementById("weeklyDonutChart");
+  if (!el) return;
 
-  // 今週月〜金のデータ取得
   const now = new Date();
   const mon = new Date(now);
   mon.setDate(now.getDate() - ((now.getDay() || 7) - 1));
@@ -400,88 +396,56 @@ function renderWeeklyChart() {
     return d.toISOString().slice(0,10);
   });
 
-  // engagementデータ
   const data = JSON.parse(localStorage.getItem(ENGAGE_KEY) || "{}");
   const weekData = data[weekKey] || {};
   const today = todayStr();
 
-  const pcts = days.map(day => weekData[day]?.pct ?? null);
-  const dones = days.map(day => weekData[day]?.done ?? 0);
-  const totals = days.map(day => weekData[day]?.total ?? 0);
-
-  const padL=36, padR=16, padT=20, padB=32;
-  const chartW = w-padL-padR, chartH = h-padT-padB;
-  const barW = Math.floor(chartW/5) - 12;
-
-  // グリッド線（0%, 25%, 50%, 75%, 100%）
-  ctx.strokeStyle = "#e8eaed"; ctx.lineWidth = 0.5;
-  [0,25,50,75,100].forEach(pct => {
-    const y = padT + chartH - (chartH * pct / 100);
-    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w-padR, y); ctx.stroke();
-    ctx.fillStyle = "#d1d5db";
-    ctx.font = "9px 'Noto Sans JP',sans-serif";
-    ctx.textAlign = "right";
-    ctx.fillText(pct + "%", padL-4, y+3);
-  });
-
-  days.forEach((day, i) => {
-    const x = padL + i * (chartW/5) + 6;
-    const pct = pcts[i];
+  el.innerHTML = days.map((day, i) => {
+    const d = weekData[day];
+    const pct = d?.pct ?? null;
+    const done = d?.done ?? 0;
+    const total = d?.total ?? 0;
     const isToday = day === today;
     const isFuture = day > today;
+    const label = labels[i];
 
-    // バー
+    // 色
+    let color = "#e5e7eb"; // デフォルトグレー
     if (pct !== null && !isFuture) {
-      const barH = Math.max((pct / 100) * chartH, pct > 0 ? 4 : 0);
-      const y = padT + chartH - barH;
-
-      // 色：100%=緑、75%以上=青、50%以上=オレンジ、未満=赤
-      let color = pct >= 100 ? "#10b981" : pct >= 75 ? "#3b82f6" : pct >= 50 ? "#f59e0b" : "#ef4444";
-      if (isToday) color = "#3b82f6";
-
-      ctx.fillStyle = color + "33"; // 薄い背景
-      ctx.fillRect(x, padT, barW, chartH);
-
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(x, y, barW, barH, [3,3,0,0]);
-      else ctx.rect(x, y, barW, barH);
-      ctx.fill();
-
-      // パーセント表示
-      ctx.fillStyle = color;
-      ctx.font = `${isToday ? "bold " : ""}11px 'Noto Sans JP',sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillText(pct + "%", x + barW/2, y - 4);
-
-      // done/total
-      if (totals[i] > 0) {
-        ctx.fillStyle = "#9ca3af";
-        ctx.font = "10px 'Noto Sans JP',sans-serif";
-        ctx.fillText(`${dones[i]}/${totals[i]}`, x + barW/2, padT + chartH + 16);
-      }
-    } else if (isFuture) {
-      // 未来は薄いプレースホルダー
-      ctx.fillStyle = "#f3f4f6";
-      ctx.fillRect(x, padT, barW, chartH);
-    } else {
-      // データなし（今日含む・未記録）
-      ctx.fillStyle = "#f3f4f6";
-      ctx.fillRect(x, padT, barW, chartH);
-      if (isToday) {
-        ctx.fillStyle = "#93c5fd";
-        ctx.font = "10px 'Noto Sans JP',sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("今日", x + barW/2, padT + chartH/2);
-      }
+      color = pct >= 100 ? "#10b981" : pct >= 75 ? "#7c3aed" : pct >= 50 ? "#7c3aed" : "#7c3aed";
     }
+    if (isToday && pct !== null) color = "#7c3aed";
 
-    // 曜日ラベル
-    ctx.fillStyle = isToday ? "#3b82f6" : "#9ca3af";
-    ctx.font = `${isToday ? "bold " : ""}11px 'Noto Sans JP',sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(labels[i], x + barW/2, h - 10);
-  });
+    const displayPct = pct ?? (isToday ? 0 : null);
+    const r = 36;
+    const stroke = 8;
+    const cx = 50, cy = 50;
+    const circumference = 2 * Math.PI * r;
+    const filled = displayPct !== null ? (displayPct / 100) * circumference : 0;
+    const gap = circumference - filled;
+    const rotation = -90;
+
+    return `<div class="donut-item ${isToday ? "donut-today" : ""} ${isFuture ? "donut-future" : ""}">
+      <svg viewBox="0 0 100 100" width="90" height="90">
+        <circle cx="${cx}" cy="${cy}" r="${r}"
+          fill="none" stroke="#e5e7eb" stroke-width="${stroke}"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}"
+          fill="none"
+          stroke="${displayPct !== null && !isFuture ? color : "#e5e7eb"}"
+          stroke-width="${stroke}"
+          stroke-dasharray="${filled} ${gap}"
+          stroke-dashoffset="${circumference * 0.25}"
+          stroke-linecap="round"
+          style="transition:stroke-dasharray 0.6s ease"/>
+        ${displayPct !== null && !isFuture
+          ? `<text x="50" y="46" text-anchor="middle" font-size="16" font-weight="700" fill="${color}" font-family="'Noto Sans JP',sans-serif">${displayPct}%</text>
+             <text x="50" y="62" text-anchor="middle" font-size="10" fill="#9ca3af" font-family="'Noto Sans JP',sans-serif">${done}/${total}</text>`
+          : `<text x="50" y="55" text-anchor="middle" font-size="11" fill="#d1d5db" font-family="'Noto Sans JP',sans-serif">${isFuture ? "—" : "—"}</text>`
+        }
+      </svg>
+      <div class="donut-label ${isToday ? "donut-label-today" : ""}">${label}${isToday ? " ●" : ""}</div>
+    </div>`;
+  }).join("");
 }
 
 // クイック追加
