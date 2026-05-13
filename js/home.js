@@ -126,6 +126,8 @@ window.saveTodayCheck = async function(index, checked, taskText) {
     }
 
     syncCheckedToDone();
+    saveEngagement();
+    renderWeeklyChart();
   } catch(e) { console.warn(e); }
 };
 
@@ -215,6 +217,8 @@ window.toggleTaskDone = async function(taskId, checked) {
 
     // 日報の「今日やったこと」に反映
     syncTasksToDone();
+    saveEngagement();
+    renderWeeklyChart();
     window.dispatchEvent(new Event("tasksUpdated"));
   } catch(e) { showToast("更新に失敗しました"); }
 };
@@ -332,30 +336,151 @@ function renderWeeklyDone() {
   `).join("");
 }
 
-// 週グラフ
+// ===== 日別完了率の記録・表示 =====
+const ENGAGE_KEY = "tasuku_engage_v1";
+
+// 今日の完了率を保存
+export function saveEngagement() {
+  const today = new Date().toISOString().slice(0,10);
+  const checkKey = `tasuku_checks_${today}`;
+  try {
+    const checks = JSON.parse(localStorage.getItem(checkKey) || "{}");
+    const checkedCount = Object.values(checks).filter(v => typeof v === "string").length;
+
+    // 今日やることの総数を取得（todayTasksのチェックボックス数）
+    const totalItems = document.querySelectorAll("#todayTasks .today-task-item").length;
+    // タスクの完了数も含める
+    const doneTasks = allTasks.filter(t => t.done && t.updatedAt &&
+      new Date(t.updatedAt).toISOString().slice(0,10) === today).length;
+
+    const total = Math.max(totalItems, checkedCount, 1);
+    const done = Math.max(checkedCount, doneTasks);
+    const pct = Math.min(100, Math.round(done / total * 100));
+
+    // 今週の月曜を取得
+    const now = new Date(today + "T00:00:00");
+    const mon = new Date(now);
+    mon.setDate(now.getDate() - ((now.getDay() || 7) - 1));
+    const weekKey = mon.toISOString().slice(0,10);
+
+    const data = JSON.parse(localStorage.getItem(ENGAGE_KEY) || "{}");
+
+    // 1週間分(7日)溜まったら古いweekをクリア
+    const keys = Object.keys(data);
+    if (keys.length > 0) {
+      const latestWeek = keys.sort().pop();
+      if (latestWeek !== weekKey) {
+        // 新しい週になったら古いデータを削除
+        keys.forEach(k => { if (k !== weekKey) delete data[k]; });
+      }
+    }
+
+    if (!data[weekKey]) data[weekKey] = {};
+    data[weekKey][today] = { done, total, pct };
+    localStorage.setItem(ENGAGE_KEY, JSON.stringify(data));
+  } catch(e) { console.warn(e); }
+}
+
 function renderWeeklyChart() {
   const canvas = document.getElementById("weeklyChart");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  const w=canvas.width, h=canvas.height;
-  ctx.clearRect(0,0,w,h);
-  const labels=["月","火","水","木","金","土","日"];
-  const now=new Date(), mon=new Date(now);
-  mon.setDate(now.getDate()-((now.getDay()||7)-1));
-  const days=Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d.toISOString().slice(0,10);});
-  const counts=days.map(day=>allTasks.filter(t=>t.createdAt&&new Date(t.createdAt).toISOString().slice(0,10)===day).length);
-  const maxVal=Math.max(...counts,1);
-  const padL=30,padR=10,padT=16,padB=26,chartW=w-padL-padR,chartH=h-padT-padB,barW=Math.floor(chartW/7)-8;
-  ctx.strokeStyle="#e8eaed";ctx.lineWidth=0.5;
-  for(let i=0;i<=4;i++){const y=padT+chartH-(chartH*i/4);ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();}
-  const today=todayStr();
-  days.forEach((day,i)=>{
-    const x=padL+i*(chartW/7)+4,barH=counts[i]>0?Math.max((counts[i]/maxVal)*chartH,4):0,y=padT+chartH-barH;
-    ctx.fillStyle=day===today?"#3b82f6":"#bfdbfe";
-    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,barW,barH,[3,3,0,0]);else ctx.rect(x,y,barW,barH);ctx.fill();
-    ctx.fillStyle="#9ca3af";ctx.font="11px 'Noto Sans JP',sans-serif";ctx.textAlign="center";
-    ctx.fillText(labels[i],x+barW/2,h-6);
-    if(counts[i]>0){ctx.fillStyle="#6b7280";ctx.fillText(counts[i],x+barW/2,y-4);}
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // 今週月〜金のデータ取得
+  const now = new Date();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - ((now.getDay() || 7) - 1));
+  const weekKey = mon.toISOString().slice(0,10);
+
+  const labels = ["月","火","水","木","金"];
+  const days = Array.from({length:5}, (_,i) => {
+    const d = new Date(mon); d.setDate(mon.getDate()+i);
+    return d.toISOString().slice(0,10);
+  });
+
+  // engagementデータ
+  const data = JSON.parse(localStorage.getItem(ENGAGE_KEY) || "{}");
+  const weekData = data[weekKey] || {};
+  const today = todayStr();
+
+  const pcts = days.map(day => weekData[day]?.pct ?? null);
+  const dones = days.map(day => weekData[day]?.done ?? 0);
+  const totals = days.map(day => weekData[day]?.total ?? 0);
+
+  const padL=36, padR=16, padT=20, padB=32;
+  const chartW = w-padL-padR, chartH = h-padT-padB;
+  const barW = Math.floor(chartW/5) - 12;
+
+  // グリッド線（0%, 25%, 50%, 75%, 100%）
+  ctx.strokeStyle = "#e8eaed"; ctx.lineWidth = 0.5;
+  [0,25,50,75,100].forEach(pct => {
+    const y = padT + chartH - (chartH * pct / 100);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w-padR, y); ctx.stroke();
+    ctx.fillStyle = "#d1d5db";
+    ctx.font = "9px 'Noto Sans JP',sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(pct + "%", padL-4, y+3);
+  });
+
+  days.forEach((day, i) => {
+    const x = padL + i * (chartW/5) + 6;
+    const pct = pcts[i];
+    const isToday = day === today;
+    const isFuture = day > today;
+
+    // バー
+    if (pct !== null && !isFuture) {
+      const barH = Math.max((pct / 100) * chartH, pct > 0 ? 4 : 0);
+      const y = padT + chartH - barH;
+
+      // 色：100%=緑、75%以上=青、50%以上=オレンジ、未満=赤
+      let color = pct >= 100 ? "#10b981" : pct >= 75 ? "#3b82f6" : pct >= 50 ? "#f59e0b" : "#ef4444";
+      if (isToday) color = "#3b82f6";
+
+      ctx.fillStyle = color + "33"; // 薄い背景
+      ctx.fillRect(x, padT, barW, chartH);
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, barW, barH, [3,3,0,0]);
+      else ctx.rect(x, y, barW, barH);
+      ctx.fill();
+
+      // パーセント表示
+      ctx.fillStyle = color;
+      ctx.font = `${isToday ? "bold " : ""}11px 'Noto Sans JP',sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText(pct + "%", x + barW/2, y - 4);
+
+      // done/total
+      if (totals[i] > 0) {
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "10px 'Noto Sans JP',sans-serif";
+        ctx.fillText(`${dones[i]}/${totals[i]}`, x + barW/2, padT + chartH + 16);
+      }
+    } else if (isFuture) {
+      // 未来は薄いプレースホルダー
+      ctx.fillStyle = "#f3f4f6";
+      ctx.fillRect(x, padT, barW, chartH);
+    } else {
+      // データなし（今日含む・未記録）
+      ctx.fillStyle = "#f3f4f6";
+      ctx.fillRect(x, padT, barW, chartH);
+      if (isToday) {
+        ctx.fillStyle = "#93c5fd";
+        ctx.font = "10px 'Noto Sans JP',sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("今日", x + barW/2, padT + chartH/2);
+      }
+    }
+
+    // 曜日ラベル
+    ctx.fillStyle = isToday ? "#3b82f6" : "#9ca3af";
+    ctx.font = `${isToday ? "bold " : ""}11px 'Noto Sans JP',sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(labels[i], x + barW/2, h - 10);
   });
 }
 
