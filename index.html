@@ -6,8 +6,8 @@
   <title>Tasuku</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#3b82f6">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Tasuku">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,10 +26,6 @@
       <button class="nav-item active" data-page="home">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>ホーム</span>
-      </button>
-      <button class="nav-item" data-page="projects">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        <span>タスク</span>
       </button>
       <button class="nav-item" data-page="report">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -58,26 +54,36 @@
           <span class="home-section-sub" id="todayFromReport">（前回日報より）</span>
         </div>
         <div class="today-tasks" id="todayTasks"><div class="loading-spinner"><div class="spinner"></div></div></div>
-        <!-- タスク追加欄 -->
-        <div class="home-quick-add">
+      </div>
+
+      <!-- タスク一覧 -->
+      <div class="home-section">
+        <div class="home-section-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          タスク
+        </div>
+        <!-- フィルター -->
+        <div class="task-filter-row" id="homeFilterBtns" style="margin-bottom:12px">
+          <button class="task-filter-btn active" data-filter="all">未完了</button>
+          <button class="task-filter-btn" data-filter="要対応">要対応</button>
+          <button class="task-filter-btn" data-filter="対応中">対応中</button>
+          <button class="task-filter-btn" data-filter="確認中">確認中</button>
+          <button class="task-filter-btn" data-filter="毎月対応">毎月</button>
+          <button class="task-filter-btn task-filter-done-btn" data-filter="完了">完了済み</button>
+        </div>
+        <!-- タスク一覧 -->
+        <div id="homeTaskList"></div>
+        <!-- クイック追加 -->
+        <div class="home-quick-add" style="margin-top:10px">
           <input type="text" class="home-quick-input" id="homeQuickInput" placeholder="タスクをすぐ追加…">
           <button type="button" class="home-quick-btn" id="homeQuickBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             追加
           </button>
         </div>
       </div>
 
-      <!-- 要対応 -->
-      <div class="home-section">
-        <div class="home-section-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          要対応・期限切れ
-        </div>
-        <div id="urgentTasks"></div>
-      </div>
-
-      <!-- 今週完了したタスク -->
+      <!-- 今週完了 -->
       <div class="home-section">
         <div class="home-section-title">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -87,42 +93,15 @@
         <div id="weeklyDoneTasks"></div>
       </div>
 
-      <!-- 今週の追加数グラフ -->
+      <!-- 週グラフ -->
       <div class="home-section">
         <div class="home-section-title">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           今週の追加数
         </div>
-        <div class="dashboard-card" style="margin:0">
+        <div class="dashboard-card" style="margin:0;padding:16px">
           <canvas id="weeklyChart" width="600" height="140"></canvas>
         </div>
-      </div>
-    </div>
-
-    <!-- TASKS PAGE -->
-    <div class="page" id="page-projects">
-      <div class="page-header">
-        <h1 class="page-title">タスク</h1>
-      </div>
-      <!-- 統計 -->
-      <div class="task-stats-row" id="taskPageStats"></div>
-      <!-- フィルター -->
-      <div class="task-filter-row" id="taskFilterBtns">
-        <button class="task-filter-btn active" data-filter="all">未完了</button>
-        <button class="task-filter-btn" data-filter="要対応">要対応</button>
-        <button class="task-filter-btn" data-filter="対応中">対応中</button>
-        <button class="task-filter-btn" data-filter="確認中">確認中</button>
-        <button class="task-filter-btn" data-filter="毎月対応">毎月対応</button>
-        <button class="task-filter-btn task-filter-done-btn" data-filter="完了">完了済み</button>
-      </div>
-      <!-- タスク一覧 -->
-      <div id="taskListBody"></div>
-      <!-- クイック追加 -->
-      <div class="quick-add-row">
-        <input type="text" class="chat-input" id="quickAddInput" placeholder="タスクを追加…">
-        <button type="button" class="chat-send" id="quickAddSend">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
       </div>
     </div>
 
@@ -143,7 +122,9 @@
             <label class="form-label">明日やること</label>
             <textarea class="form-textarea" id="reportTomorrow" rows="4" placeholder="・〇〇&#10;・〇〇"></textarea>
           </div>
-          <div class="draft-indicator" id="draftIndicator" style="display:none"><span class="draft-dot"></span>下書き保存済み</div>
+          <div class="draft-indicator" id="draftIndicator" style="display:none">
+            <span class="draft-dot"></span>下書き保存済み
+          </div>
           <button class="btn-generate" id="generateReportBtn">日報を生成</button>
         </div>
         <div class="report-output">
@@ -156,14 +137,14 @@
       </div>
     </div>
 
-    <!-- WEEKLY SUMMARY -->
+    <!-- WEEKLY -->
     <div class="page" id="page-weekly">
       <div class="page-header">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
           <h1 class="page-title">週次サマリー</h1>
           <button class="btn-add" id="generateWeeklyBtn">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            AIで今週のサマリーを生成
+            今週のサマリーを生成
           </button>
         </div>
       </div>
@@ -180,10 +161,6 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
       ホーム
     </button>
-    <button class="bottom-nav-item" data-page="projects">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      案件
-    </button>
     <button class="bottom-nav-item" data-page="report">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       日報
@@ -193,7 +170,6 @@
       週次
     </button>
   </nav>
-
 
   <!-- Task Edit Modal -->
   <div class="modal-overlay" id="taskEditOverlay">
@@ -241,8 +217,6 @@
   <script type="module" src="js/holidays.js"></script>
   <script type="module" src="js/report.js"></script>
   <script type="module" src="js/home.js"></script>
-  <script type="module" src="js/chat.js"></script>
-  <script type="module" src="js/projects.js"></script>
   <script type="module" src="js/weekly.js"></script>
   <script type="module" src="js/app.js"></script>
   <script>

@@ -1,8 +1,6 @@
 // js/app.js
 import { initReport } from "./report.js";
-import { renderHome } from "./home.js";
-import { initChat } from "./chat.js";
-import { initProjects, renderProjects } from "./projects.js";
+import { renderHome, saveHomeTaskEdit, deleteHomeTask } from "./home.js";
 import { initWeekly } from "./weekly.js";
 
 function switchPage(page) {
@@ -10,7 +8,7 @@ function switchPage(page) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById(`page-${page}`)?.classList.add("active");
   if (page === "home") renderHome();
-  if (page === "projects") renderProjects();
+  if (page === "weekly") {} // initWeeklyで初期化済み
 }
 
 function initNav() {
@@ -29,40 +27,54 @@ function initNav() {
 function initSidebarResize() {
   const resizer = document.getElementById("sidebarResizer");
   const sidebar = document.getElementById("sidebar");
-  let dragging = false, startX, startW;
+  let dragging=false, startX, startW;
   resizer?.addEventListener("mousedown", e => {
-    dragging = true; startX = e.clientX; startW = sidebar.offsetWidth;
+    dragging=true; startX=e.clientX; startW=sidebar.offsetWidth;
     resizer.classList.add("dragging");
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
+    document.body.style.cursor="col-resize"; document.body.style.userSelect="none";
   });
   document.addEventListener("mousemove", e => {
-    if (!dragging) return;
-    const newW = Math.min(300, Math.max(160, startW + (e.clientX - startX)));
-    sidebar.style.width = newW + "px";
+    if(!dragging) return;
+    sidebar.style.width = Math.min(300,Math.max(160,startW+(e.clientX-startX)))+"px";
   });
   document.addEventListener("mouseup", () => {
-    if (!dragging) return;
-    dragging = false;
+    if(!dragging) return; dragging=false;
     resizer.classList.remove("dragging");
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
+    document.body.style.cursor=""; document.body.style.userSelect="";
+  });
+}
+
+function initEditModal() {
+  document.getElementById("taskEditClose")?.addEventListener("click", () => {
+    document.getElementById("taskEditOverlay").classList.remove("open");
+  });
+  document.getElementById("taskEditCancel")?.addEventListener("click", () => {
+    document.getElementById("taskEditOverlay").classList.remove("open");
+  });
+  document.getElementById("taskEditSave")?.addEventListener("click", saveHomeTaskEdit);
+  document.getElementById("taskEditDelete")?.addEventListener("click", deleteHomeTask);
+  document.getElementById("taskEditOverlay")?.addEventListener("click", e => {
+    if(e.target === e.currentTarget) e.currentTarget.classList.remove("open");
+  });
+  document.querySelectorAll(".edit-status-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".edit-status-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
   });
 }
 
 async function init() {
   initNav();
   initSidebarResize();
+  initEditModal();
   initReport();
-  initProjects();
   initWeekly();
-  await initChat();
   renderHome();
 
   window.addEventListener("tasksUpdated", () => {
     const active = document.querySelector(".page.active");
     if (active?.id === "page-home") renderHome();
-    if (active?.id === "page-projects") renderProjects();
   });
 }
 
