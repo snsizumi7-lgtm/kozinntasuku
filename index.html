@@ -78,7 +78,7 @@
               <div class="chat-bubble ai">タスクの追加・更新をテキストで送ってください。<br>例：「GY　LP修正」「LP修正を完了にして」「要対応一覧」</div>
             </div>
             <div class="chat-input-row">
-              <input type="text" class="chat-input" id="chatInput" placeholder="タスクを入力…">
+              <input type="text" class="chat-input" id="chatInput" placeholder="タスクを入力…" onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();return false;}" onkeypress="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();return false;}">
               <button type="button" class="chat-send" id="chatSend">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
