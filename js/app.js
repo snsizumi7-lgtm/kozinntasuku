@@ -2,15 +2,12 @@
 import { initReport } from "./report.js";
 import { renderHome, saveHomeTaskEdit, deleteHomeTask } from "./home.js";
 import { initWeekly } from "./weekly.js";
-import { initMypage, renderMypage, loadAdminRequestList, updateBadge } from "./mypage.js";
 
 function switchPage(page) {
   document.querySelectorAll(".nav-item, .bottom-nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === page));
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById(`page-${page}`)?.classList.add("active");
   if (page === "home") renderHome();
-  if (page === "mypage") renderMypage();
-  if (page === "admin") loadAdminRequestList();
 }
 
 function initNav() {
@@ -67,10 +64,7 @@ async function init() {
   initEditModal();
   initReport();
   initWeekly();
-  initMypage();
   renderHome();
-  // 起動時にバッジを更新
-  checkBadges();
 
   window.addEventListener("tasksUpdated", () => {
     const active = document.querySelector(".page.active");
@@ -79,34 +73,3 @@ async function init() {
 }
 
 init();
-
-async function checkBadges() {
-  try {
-    const { getDocs, collection } = await import("./firebase.js");
-    const { db } = await import("./firebase.js");
-    const myName = localStorage.getItem("tasuku_myname") || "";
-    let count = 0;
-
-    // 未読依頼
-    if (myName) {
-      const rsnap = await getDocs(collection(db, "requests"));
-      count += rsnap.docs.filter(d => d.data().assignee === myName && !d.data().read).length;
-    }
-
-    // 3日以上更新なし
-    const tsnap = await getDocs(collection(db, "tasks_v2"));
-    const now = new Date();
-    tsnap.docs.forEach(d => {
-      const t = d.data();
-      if (t.done) return;
-      const updated = t.updatedAt || t.createdAt;
-      if (!updated) return;
-      if ((now - new Date(updated)) / (1000*60*60*24) >= 3) count++;
-    });
-
-    // 金曜
-    if (new Date().getDay() === 5) count++;
-
-    updateBadge(Math.min(count, 99));
-  } catch(e) {}
-}

@@ -35,15 +35,8 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span>週次サマリー</span>
       </button>
-      <button class="nav-item" data-page="mypage">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20a6 6 0 0 0-12 0"/><circle cx="12" cy="10" r="4"/></svg>
-        <span>マイページ</span>
-        <span class="nav-badge" id="navBadgeMypage" style="display:none"></span>
-      </button>
-      <button class="nav-item nav-item-admin" data-page="admin">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-        <span>管理設定</span>
-      </button>
+
+
     </nav>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
   </aside>
@@ -160,51 +153,6 @@
       <div class="weekly-reports" id="weeklyReports"></div>
     </div>
 
-    <!-- MYPAGE -->
-    <div class="page" id="page-mypage">
-      <div class="page-header">
-        <h1 class="page-title">マイページ</h1>
-        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">通知・依頼・アラートを確認できます</p>
-      </div>
-      <div id="mypageContent"></div>
-    </div>
-
-    <!-- ADMIN -->
-    <div class="page" id="page-admin">
-      <div class="page-header"><h1 class="page-title">管理設定</h1></div>
-      <div class="admin-section">
-        <div class="admin-section-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          依頼を追加
-        </div>
-        <div class="admin-form">
-          <div class="form-group">
-            <label class="form-label">タイトル <span class="required">*</span></label>
-            <input type="text" class="form-input" id="reqTitle" placeholder="依頼のタイトル">
-          </div>
-          <div class="form-group">
-            <label class="form-label">担当者名 <span class="required">*</span></label>
-            <input type="text" class="form-input" id="reqAssignee" placeholder="担当者名（マイページで確認する名前）">
-          </div>
-          <div class="form-group">
-            <label class="form-label">内容</label>
-            <textarea class="form-textarea" id="reqBody" rows="3" placeholder="依頼の詳細内容"></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">期限</label>
-            <input type="date" class="form-input" id="reqDeadline" style="-webkit-appearance:none">
-          </div>
-          <button class="btn-generate" id="addRequestBtn">依頼を送信</button>
-        </div>
-
-        <div class="admin-section-title" style="margin-top:28px">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          送信済み依頼一覧
-        </div>
-        <div id="adminRequestList"></div>
-      </div>
-    </div>
-
   </main>
 
   <!-- Bottom nav (mobile) -->
@@ -221,11 +169,7 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       週次
     </button>
-    <button class="bottom-nav-item" data-page="mypage" style="position:relative">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20a6 6 0 0 0-12 0"/><circle cx="12" cy="10" r="4"/></svg>
-      マイページ
-      <span class="bottom-badge" id="bottomBadgeMypage" style="display:none"></span>
-    </button>
+
   </nav>
 
   <!-- Task Edit Modal -->
@@ -266,7 +210,6 @@
   <script type="module" src="js/report.js"></script>
   <script type="module" src="js/home.js"></script>
   <script type="module" src="js/weekly.js"></script>
-  <script type="module" src="js/mypage.js"></script>
   <script type="module" src="js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
